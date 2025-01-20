@@ -9,8 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "ethers": "^5.7.2",
     "vue": "^3.3.4",
-    "ethers": "^5.7.2"
+    "web3": "^4.16.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.2.3",

@@ -136,6 +136,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ethers } from 'ethers'
+import {MarcABI} from './Contract/MarcAbi'
+import {MarcAddress} from './Contract/Address'
 
 const MARC_USDT_RATE = 0.02 // USDT per MARC
 const account = ref('')
@@ -313,6 +315,14 @@ const handlePurchase = async () => {
   }
 
   try {
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+    const marcToken=new ethers.Contract(MarcAddress,MarcABI,provider);
+    console.log(marcToken)
+    const signer = provider.getSigner();
+    const contractWithSigner = marcToken.connect(signer);
+    const tokenAmountOutMin = ethers.utils.parseUnits(marcAmount.value, 18);
+    const tx = await contractWithSigner.buyAndLock(tokenAmountOutMin);
+    console.log(tx);
     alert(`This would purchase ${marcAmount.value} MARC tokens for ${ethAmount.value} ETH`)
   } catch (error) {
     console.error('Purchase error:', error)
