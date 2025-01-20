@@ -317,11 +317,13 @@ const handlePurchase = async () => {
   try {
     const provider = new ethers.providers.Web3Provider(window.ethereum)
     const marcToken=new ethers.Contract(MarcAddress,MarcABI,provider);
-    console.log(marcToken)
+    const ethValue=ethAmount.value.toString();
     const signer = provider.getSigner();
     const contractWithSigner = marcToken.connect(signer);
     const tokenAmountOutMin = ethers.utils.parseUnits(marcAmount.value, 18);
-    const tx = await contractWithSigner.buyAndLock(tokenAmountOutMin);
+    const tx = await contractWithSigner.buyAndLock(tokenAmountOutMin,{
+      value:ethers.utils.parseEther(ethValue)
+    });
     console.log(tx);
     alert(`This would purchase ${marcAmount.value} MARC tokens for ${ethAmount.value} ETH`)
   } catch (error) {
