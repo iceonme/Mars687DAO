@@ -87,7 +87,12 @@
 
       <!-- To Section (MARC) -->
       <div class="space-y-2">
-        <div class="text-sm font-medium text-gray-400">To (MARC)</div>
+        <div class="flex justify-between items-center">
+          <div class="text-sm font-medium text-gray-400">To (MARC)</div>
+          <div v-if="account" class="text-sm text-gray-400">
+            Balance: {{ marcBalance }} MARC
+          </div>
+        </div>
         <div class="bg-mars-dark/50 rounded-xl p-4 border border-mars-red/20">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
