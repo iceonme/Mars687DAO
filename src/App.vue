@@ -3,6 +3,7 @@
     <div class="w-full max-w-[420px] bg-mars-surface rounded-2xl border border-mars-red/20 shadow-lg shadow-mars-red/10 p-6 space-y-6">
       <!-- Title -->
       <h1 class="text-2xl font-bold text-center text-mars-red">Martiancoin Private Sale Round</h1>
+      <div class="text-sm text-center text-mars-accent mb-2">Getting Ready</div>
       <div class="text-sm text-gray-400 text-center bg-mars-dark/30 rounded-lg py-2 border border-mars-red/20">
           <div class="text-white">Private Sale Ends: February 5, 2025</div>
         </div>
