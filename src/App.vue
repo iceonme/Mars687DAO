@@ -29,7 +29,7 @@
               </svg>
             </button>
           </div>
-          <div v-if="account" class="text-white mt-1">MARC Balance: {{ marcBalance }}</div>
+      
         </div>
       </div>
       
