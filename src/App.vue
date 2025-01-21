@@ -382,7 +382,9 @@ const handlePurchase = async () => {
       value:ethers.utils.parseEther(ethValue)
     });
     console.log(tx);
-    alert(`This would purchase ${marcAmount.value} MARC tokens for ${ethAmount.value} ETH`)
+    // Wait for transaction confirmation
+    await tx.wait();
+    alert(`Successfully purchased ${formatNumber(marcAmount.value)} MARC tokens for ${ethAmount.value} ETH`)
   } catch (error) {
     console.error('Purchase error:', error)
     alert('Failed to complete purchase')
