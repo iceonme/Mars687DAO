@@ -95,6 +95,9 @@
                 M
               </div>
               <span class="font-medium text-white">MARC</span>
+              <div class="text-xs text-gray-400 ml-2">
+                {{ getCountdown() }}
+              </div>
             </div>
             <div class="flex items-center gap-2">
               <input 
@@ -233,6 +236,18 @@ const canPurchase = computed(() => {
          Number(ethAmount.value) > 0 && 
          Number(ethAmount.value) <= Number(ethBalance.value)
 })
+
+const getCountdown = () => {
+  const endDate = new Date('2025-02-05T00:00:00Z');
+  const now = new Date();
+  const diff = endDate - now;
+  
+  if (diff <= 0) return 'Ended';
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  return `${days}d ${hours}h left`;
+}
 
 // Watch for ETH amount changes
 watch(ethAmount, (newValue) => {
