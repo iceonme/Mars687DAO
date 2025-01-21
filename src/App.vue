@@ -21,7 +21,15 @@
         
         <div class="text-sm text-gray-400 text-center bg-mars-dark/30 rounded-lg py-2 border border-mars-red/20">
           <div class="text-white">1 MARC = 0.02 USDT</div>
-          <div class="text-white">1 ETH = {{ ethPrice }} USDT</div>
+          <div class="flex items-center justify-center gap-2">
+            <div class="text-white">1 ETH = {{ ethPrice }} USDT</div>
+            <button @click="refreshEthPrice" class="text-mars-red hover:text-mars-accent">
+              <svg class="w-4 h-4" :class="{ 'animate-spin': isRefreshing }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
+          <div v-if="account" class="text-white mt-1">MARC Balance: {{ marcBalance }}</div>
         </div>
       </div>
       
@@ -146,6 +154,30 @@ const ethBalance = ref('0.00')
 const ethPrice = ref('2000.00') // Default price before API call
 const marcAmount = ref('10000.00') // Pre-filled based on default ETH amount and price
 const isEthInput = ref(true) // Track which input was last modified
+const isRefreshing = ref(false)
+const marcBalance = ref('0.00')
+
+// Function to get MARC balance
+const updateMarcBalance = async () => {
+  if (!account.value) return
+  try {
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+    const marcToken = new ethers.Contract(MarcAddress, MarcABI, provider)
+    const balance = await marcToken.balanceOf(account.value)
+    marcBalance.value = ethers.utils.formatUnits(balance, 18)
+  } catch (error) {
+    console.error('Error fetching MARC balance:', error)
+  }
+}
+
+// Function to refresh ETH price
+const refreshEthPrice = async () => {
+  isRefreshing.value = true
+  await fetchEthPrice()
+  setTimeout(() => {
+    isRefreshing.value = false
+  }, 1000)
+}
 
 // Fetch ETH price from CoinGecko API
 const fetchEthPrice = async () => {
@@ -277,17 +309,22 @@ const connectWallet = async () => {
       ethBalance.value = ethers.utils.formatEther(balance)
 
       // Listen for account changes
-      window.ethereum.on('accountsChanged', (accounts) => {
+      window.ethereum.on('accountsChanged', async (accounts) => {
         if (accounts.length === 0) {
           account.value = ''
           ethBalance.value = '0.00'
+          marcBalance.value = '0.00'
         } else {
           account.value = accounts[0]
-          provider.getBalance(accounts[0]).then(balance => {
+          await provider.getBalance(accounts[0]).then(balance => {
             ethBalance.value = ethers.utils.formatEther(balance)
           })
+          await updateMarcBalance()
         }
       })
+      
+      // Get initial MARC balance
+      await updateMarcBalance()
     } catch (error) {
       console.error('Error connecting wallet:', error)
       alert('Failed to connect wallet')
