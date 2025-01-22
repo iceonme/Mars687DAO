@@ -11,11 +11,11 @@
         <div class="grid grid-cols-2 gap-2">
           <div class="text-sm text-gray-400 text-center bg-mars-dark/30 rounded-lg py-2 border border-mars-red/20">
             <div class="font-medium text-white mb-1">Round Supply</div>
-            <div>2,250,000 MARC <br>(1% of Total)</div>
+            <div>{{ totalBalance }} MARC <br>(1% of Total)</div>
           </div>
           <div class="text-sm text-gray-400 text-center bg-mars-dark/30 rounded-lg py-2 border border-mars-red/20">
             <div class="font-medium text-white mb-1">Remaining</div>
-            <div>1,223,420 MARC <br>(45.3% of This Round)</div>
+            <div>{{ remainingBalance }} MARC <br>({{ remainingPresent }} of This Round)</div>
           </div>
         </div>
         
@@ -164,7 +164,9 @@ const marcAmount = ref('10000.00') // Pre-filled based on default ETH amount and
 const isEthInput = ref(true) // Track which input was last modified
 const isRefreshing = ref(false)
 const marcBalance = ref('0.00')
-
+const remainingBalance=ref("0.00".toLocaleString('en-US'))
+const totalBalance=ref("2250000.00".toLocaleString('en-US'))
+const remainingPresent=ref("0%")
 // Function to get MARC balance
 const updateMarcBalance = async () => {
   if (!account.value) return
@@ -326,8 +328,7 @@ const connectWallet = async () => {
       // Get ETH balance
       const provider = new ethers.providers.Web3Provider(window.ethereum)
       const balance = await provider.getBalance(account.value)
-      ethBalance.value = ethers.utils.formatEther(balance)
-
+      ethBalance.value = ethers.utils.formatEther(balance)      
       // Listen for account changes
       window.ethereum.on('accountsChanged', async (accounts) => {
         if (accounts.length === 0) {
@@ -390,16 +391,32 @@ const handlePurchase = async () => {
     alert('Failed to complete purchase')
   }
 }
-
+const getContractBalance=async ()=>{
+  const provider = new ethers.providers.Web3Provider(window.ethereum)
+  const marcToken=new ethers.Contract(MarcAddress,MarcABI,provider);
+  const signer = provider.getSigner();
+  const contractWithSigner = marcToken.connect(signer);
+  const contractBalance = await marcToken.balanceOf(contractWithSigner.address);
+  const totalSupply=await marcToken.totalSupply();
+  remainingPresent.value=toFixedNoRound(contractBalance/totalSupply*100,2)+"%";
+  console.log(ethers.utils.formatUnits(totalSupply, 18))
+  remainingBalance.value=ethers.utils.formatUnits(contractBalance, 18).toLocaleString("en-US");
+}
+const toFixedNoRound=(num, digits)=>{
+  const factor = 10n ** BigInt(digits);
+  const bigNum = BigInt(Math.floor(num * Number(factor)));
+  return Number(bigNum) / Number(factor);
+}
 // Initialize component
 onMounted(() => {
   // Set initial MARC amount based on default ETH amount and price
   marcAmount.value = calculateInitialMarc()
-  
+  getContractBalance()
   // Fetch real ETH price
   fetchEthPrice()
   // Update price every 30 seconds
   setInterval(fetchEthPrice, 30000)
+  
 })
 </script>
 
