@@ -3,6 +3,7 @@
     <div class="w-full max-w-[420px] bg-mars-surface rounded-2xl border border-mars-red/20 shadow-lg shadow-mars-red/10 p-6 space-y-6">
       <!-- Title -->
       <h1 class="text-2xl font-bold text-center text-mars-red">Martiancoin Private Sale Round</h1>
+      <div class="text-sm text-center text-mars-accent mb-2">In Preparation</div>
       <div class="text-sm text-gray-400 text-center bg-mars-dark/30 rounded-lg py-2 border border-mars-red/20">
           <div class="text-white">Private Sale Ends: February 5, 2025</div>
         </div>
@@ -124,9 +125,10 @@
 
       <!-- Buttons -->
       <div class="space-y-3 pt-2">
+        <div class="text-sm text-center text-mars-accent mb-2">Coming Soon - Stay Tuned for Purchase Opportunity</div>
         <button
-          @click="connectWallet"
-          class="w-full bg-mars-red text-white py-4 rounded-xl font-medium hover:bg-mars-accent transition-colors flex items-center justify-center gap-2"
+          class="w-full bg-gray-500 text-white py-4 rounded-xl font-medium cursor-not-allowed flex items-center justify-center gap-2"
+          disabled
         >
           <svg v-if="!account" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
