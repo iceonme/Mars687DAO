@@ -154,7 +154,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { ethers } from 'ethers'
 import {MarcABI} from './Contract/MarcAbi'
 import {MarcAddress} from './Contract/Address'
-
+import {
+  createAppKit,useAppKit,useAppKitAccount
+} from '@reown/appkit/vue'
+import {wagmiAdapter , networks, projectId } from './Config/Index'
+import { readContract,getBalance,writeContract } from '@wagmi/core'
+import {ContractConfig} from './Contract/Config'
 const MARC_USDT_RATE = 0.02 // USDT per MARC
 const account = ref('')
 const ethAmount = ref('0.1')  // 预填 0.1 ETH
@@ -167,6 +172,24 @@ const marcBalance = ref('0.00')
 const remainingBalance=ref("0.00".toLocaleString('en-US'))
 const totalBalance=ref("2250000.00".toLocaleString('en-US'))
 const remainingPresent=ref("0%")
+createAppKit({
+  adapters: [wagmiAdapter],
+  networks,
+  projectId,
+  metadata: {
+    name: 'Mars DAO',
+    description: 'Mars DAO',
+    url: '',
+    icons: ['']
+  },
+  features:{
+    email:false,
+    emailShowWallets:false,
+    socials:false
+  }
+})
+const appKit = useAppKit();
+const accountData=useAppKitAccount()
 // Function to get MARC balance
 const updateMarcBalance = async () => {
   if (!account.value) return
@@ -255,14 +278,18 @@ const getCountdown = () => {
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   return `${days}d ${hours}h left`;
 }
-
 // Watch for ETH amount changes
 watch(ethAmount, (newValue) => {
   if (!isNaN(newValue) && newValue !== '' && isEthInput.value) {
     updateMarcAmount()
   }
 })
-
+watch(accountData,(newValue)=>{
+  if(newValue&&newValue.isConnected){
+    account.value=newValue.address
+    getTotalBalance();
+  }
+})
 // Watch for MARC amount changes
 watch(marcAmount, (newValue) => {
   if (!isNaN(newValue) && newValue !== '' && !isEthInput.value) {
@@ -315,44 +342,59 @@ const setMaxAmount = () => {
   const maxAmount = Number(ethBalance.value) - 0.01
   ethAmount.value = maxAmount > 0 ? maxAmount.toString() : '0'
 }
-
+const getTotalBalance=async ()=>{
+  const balance = await getBalance(ContractConfig, {
+  address: account.value,
+})
+ethBalance.value = ethers.utils.formatEther(balance.value)
+await updateMarcBalance()
+}
 // Connect wallet function
 const connectWallet = async () => {
-  if (window.ethereum) {
-    try {
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
-      })
-      account.value = accounts[0]
-      
-      // Get ETH balance
-      const provider = new ethers.providers.Web3Provider(window.ethereum)
-      const balance = await provider.getBalance(account.value)
-      ethBalance.value = ethers.utils.formatEther(balance)      
-      // Listen for account changes
-      window.ethereum.on('accountsChanged', async (accounts) => {
-        if (accounts.length === 0) {
-          account.value = ''
-          ethBalance.value = '0.00'
-          marcBalance.value = '0.00'
-        } else {
-          account.value = accounts[0]
-          await provider.getBalance(accounts[0]).then(balance => {
-            ethBalance.value = ethers.utils.formatEther(balance)
-          })
-          await updateMarcBalance()
-        }
-      })
-      
-      // Get initial MARC balance
-      await updateMarcBalance()
-    } catch (error) {
-      console.error('Error connecting wallet:', error)
-      alert('Failed to connect wallet')
-    }
-  } else {
-    alert('Please install MetaMask!')
+  console.log(accountData)
+  if(!accountData||!accountData.value.isConnected){
+    appKit.open()
+  } else{
+    account.value=accountData.value.address
+    await getTotalBalance();
+ 
   }
+  
+  // if (window.ethereum) {
+  //   try {
+  //     const accounts = await window.ethereum.request({
+  //       method: 'eth_requestAccounts'
+  //     })
+  //     account.value = accounts[0]
+      
+  //     // Get ETH balance
+  //     const provider = new ethers.providers.Web3Provider(window.ethereum)
+  //     const balance = await provider.getBalance(account.value)
+  //     ethBalance.value = ethers.utils.formatEther(balance)      
+  //     // Listen for account changes
+  //     window.ethereum.on('accountsChanged', async (accounts) => {
+  //       if (accounts.length === 0) {
+  //         account.value = ''
+  //         ethBalance.value = '0.00'
+  //         marcBalance.value = '0.00'
+  //       } else {
+  //         account.value = accounts[0]
+  //         await provider.getBalance(accounts[0]).then(balance => {
+  //           ethBalance.value = ethers.utils.formatEther(balance)
+  //         })
+  //         await updateMarcBalance()
+  //       }
+  //     })
+      
+  //     // Get initial MARC balance
+  //     await updateMarcBalance()
+  //   } catch (error) {
+  //     console.error('Error connecting wallet:', error)
+  //     alert('Failed to connect wallet')
+  //   }
+  // } else {
+  //   alert('Please install MetaMask!')
+  // }
 }
 
 // Handle purchase function
@@ -373,18 +415,16 @@ const handlePurchase = async () => {
   }
 
   try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    const marcToken=new ethers.Contract(MarcAddress,MarcABI,provider);
     const ethValue=ethAmount.value.toString();
-    const signer = provider.getSigner();
-    const contractWithSigner = marcToken.connect(signer);
     const tokenAmountOutMin = ethers.utils.parseUnits(marcAmount.value, 18);
-    const tx = await contractWithSigner.buyAndLock(tokenAmountOutMin,{
-      value:ethers.utils.parseEther(ethValue)
-    });
-    console.log(tx);
-    // Wait for transaction confirmation
-    await tx.wait();
+    const buyResult = await writeContract(ContractConfig, {
+      abi:MarcABI,
+      address: MarcAddress,
+      functionName: 'buyAndLock',
+      args:[tokenAmountOutMin],
+      value:ethers.utils.parseUnits(ethValue,18)
+    })
+    console.log(buyResult)
     alert(`Successfully purchased ${formatNumber(marcAmount.value)} MARC tokens for ${ethAmount.value} ETH`)
   } catch (error) {
     console.error('Purchase error:', error)
@@ -392,15 +432,24 @@ const handlePurchase = async () => {
   }
 }
 const getContractBalance=async ()=>{
-  const provider = new ethers.providers.Web3Provider(window.ethereum)
-  const marcToken=new ethers.Contract(MarcAddress,MarcABI,provider);
-  const signer = provider.getSigner();
-  const contractWithSigner = marcToken.connect(signer);
-  const contractBalance = await marcToken.balanceOf(contractWithSigner.address);
-  const totalSupply=await marcToken.totalSupply();
-  remainingPresent.value=toFixedNoRound(contractBalance/totalSupply*100,2)+"%";
-  console.log(ethers.utils.formatUnits(totalSupply, 18))
-  remainingBalance.value=ethers.utils.formatUnits(contractBalance, 18).toLocaleString("en-US");
+  const contractBalance = await getBalance(ContractConfig, {
+    address:MarcAddress,
+    token: MarcAddress,
+  })
+  const contractBalanceValue=ethers.utils.formatUnits(contractBalance.value, 18)
+  // const provider = new ethers.providers.Web3Provider(window.ethereum)
+  // const marcToken=new ethers.Contract(MarcAddress,MarcABI,provider);
+  // const signer = provider.getSigner();
+  // const contractWithSigner = marcToken.connect(signer);
+  // const contractBalance = await marcToken.balanceOf(contractWithSigner.address);
+  const totalSupply = await readContract(ContractConfig, {
+      abi:MarcABI,
+      address: MarcAddress,
+      functionName: 'totalSupply',
+    })
+  const totalSupplyValue=ethers.utils.formatUnits(totalSupply, 18);
+  remainingPresent.value=toFixedNoRound(contractBalanceValue/totalSupplyValue*100,2)+"%";
+  remainingBalance.value=contractBalanceValue.toLocaleString("en-US");
 }
 const toFixedNoRound=(num, digits)=>{
   const factor = 10n ** BigInt(digits);
